@@ -1,0 +1,31 @@
+<tlLogics>
+    <tlLogic id="J" type="static" programID="0" offset="0">
+        <!-- North direction open (A0 to all directions) - 15 seconds -->
+        <phase duration="15" state="GGGrrrrrrrrr"/>
+        <!-- North yellow - 3 seconds -->
+        <phase duration="3"  state="yyyrrrrrrrrr"/>
+        <!-- All red - 2 seconds -->
+        <phase duration="2"  state="rrrrrrrrrrrr"/>
+        
+        <!-- East direction open (D0 to all directions) - 15 seconds -->
+        <phase duration="15" state="rrrGGGrrrrrr"/>
+        <!-- East yellow - 3 seconds -->
+        <phase duration="3"  state="rrryyyrrrrrr"/>
+        <!-- All red - 2 seconds -->
+        <phase duration="2"  state="rrrrrrrrrrrr"/>
+        
+        <!-- South direction open (C0 to all directions) - 15 seconds -->
+        <phase duration="15" state="rrrrrrGGGrrr"/>
+        <!-- South yellow - 3 seconds -->
+        <phase duration="3"  state="rrrrrryyyrrr"/>
+        <!-- All red - 2 seconds -->
+        <phase duration="2"  state="rrrrrrrrrrrr"/>
+        
+        <!-- West direction open (B0 to all directions) - 15 seconds -->
+        <phase duration="15" state="rrrrrrrrrGGG"/>
+        <!-- West yellow - 3 seconds -->
+        <phase duration="3"  state="rrrrrrrrryyy"/>
+        <!-- All red - 2 seconds -->
+        <phase duration="2"  state="rrrrrrrrrrrr"/>
+    </tlLogic>
+</tlLogics>

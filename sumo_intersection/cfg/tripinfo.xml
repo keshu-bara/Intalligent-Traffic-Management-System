@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-10-02 16:41:35 by Eclipse SUMO GUI Version 1.24.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="C:/PC/Projects/SIH/sumo_intersection/cfg/../net/network.net.xml"/>
+        <route-files value="C:/PC/Projects/SIH/sumo_intersection/cfg/../routes/data2_vehicles.rou.xml"/>
+    </input>
+
+    <output>
+        <summary-output value="C:/PC/Projects/SIH/sumo_intersection/cfg/summary.xml"/>
+        <tripinfo-output value="C:/PC/Projects/SIH/sumo_intersection/cfg/tripinfo.xml"/>
+    </output>
+
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+        <step-length value="1"/>
+    </time>
+
+    <processing>
+        <time-to-teleport value="300"/>
+    </processing>
+
+    <traci_server>
+        <remote-port value="63170"/>
+    </traci_server>
+
+    <gui_only>
+        <start value="true"/>
+        <delay value="500"/>
+    </gui_only>
+
+</sumoConfiguration>
+-->
+
+<tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+    <tripinfo id="vehicle_210" depart="2.00" departLane="A0_1" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="40.00" arrivalLane="C1_1" arrivalPos="86.40" arrivalSpeed="7.88" duration="38.00" routeLength="197.90" waitingTime="6.00" waitingCount="1" stopTime="0.00" timeLoss="13.66" rerouteNo="0" devices="tripinfo_vehicle_210" vType="motorcycle_082_white" speedFactor="1.01" vaporized=""/>
+    <tripinfo id="vehicle_838" depart="4.00" departLane="A0_1" departPos="3.10" departSpeed="0.00" departDelay="1.00" arrival="42.00" arrivalLane="C1_1" arrivalPos="86.40" arrivalSpeed="9.88" duration="38.00" routeLength="196.90" waitingTime="5.00" waitingCount="1" stopTime="0.00" timeLoss="17.82" rerouteNo="0" devices="tripinfo_vehicle_838" vType="autorickshaw_102_blue" speedFactor="1.08" vaporized=""/>
+    <tripinfo id="vehicle_619" depart="0.00" departLane="A0_2" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="43.00" arrivalLane="D1_1" arrivalPos="86.40" arrivalSpeed="6.50" duration="43.00" routeLength="195.21" waitingTime="6.00" waitingCount="1" stopTime="0.00" timeLoss="16.00" rerouteNo="0" devices="tripinfo_vehicle_619" vType="motorcycle_073_black" speedFactor="0.94" vaporized=""/>
+    <tripinfo id="vehicle_497" depart="7.00" departLane="A0_1" departPos="2.10" departSpeed="0.00" departDelay="4.00" arrival="45.00" arrivalLane="C1_1" arrivalPos="86.40" arrivalSpeed="7.41" duration="38.00" routeLength="197.90" waitingTime="5.00" waitingCount="1" stopTime="0.00" timeLoss="14.56" rerouteNo="0" devices="tripinfo_vehicle_497" vType="motorcycle_086_black" speedFactor="1.03" vaporized=""/>
+    <tripinfo id="vehicle_859" depart="26.00" departLane="D0_1" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="54.00" arrivalLane="B1_1" arrivalPos="86.40" arrivalSpeed="9.77" duration="28.00" routeLength="197.90" waitingTime="2.00" waitingCount="1" stopTime="0.00" timeLoss="10.02" rerouteNo="0" devices="tripinfo_vehicle_859" vType="motorcycle_114_blue" speedFactor="1.03" vaporized=""/>
+    <tripinfo id="vehicle_107" depart="22.00" departLane="D0_0" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="61.00" arrivalLane="A1_0" arrivalPos="86.40" arrivalSpeed="4.83" duration="39.00" routeLength="179.73" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="9.43" rerouteNo="0" devices="tripinfo_vehicle_107" vType="motorcycle_062_blue" speedFactor="1.09" vaporized=""/>
+    <tripinfo id="vehicle_649" depart="15.00" departLane="A0_0" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="65.00" arrivalLane="B1_0" arrivalPos="86.40" arrivalSpeed="3.70" duration="50.00" routeLength="179.73" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="12.20" rerouteNo="0" devices="tripinfo_vehicle_649" vType="motorcycle_047_white" speedFactor="0.89" vaporized=""/>
+    <tripinfo id="vehicle_251" depart="38.00" departLane="D0_1" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="65.00" arrivalLane="B1_1" arrivalPos="86.40" arrivalSpeed="7.93" duration="27.00" routeLength="197.90" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="4.18" rerouteNo="0" devices="tripinfo_vehicle_251" vType="motorcycle_087_black" speedFactor="0.93" vaporized=""/>
+    <tripinfo id="vehicle_511" depart="15.00" departLane="C0_1" departPos="3.10" departSpeed="0.00" departDelay="0.00" arrival="71.00" arrivalLane="A1_1" arrivalPos="86.40" arrivalSpeed="8.08" duration="56.00" routeLength="196.90" waitingTime="24.00" waitingCount="1" stopTime="0.00" timeLoss="31.88" rerouteNo="0" devices="tripinfo_vehicle_511" vType="autorickshaw_082_white" speedFactor="1.05" vaporized=""/>
+    <tripinfo id="vehicle_183" depart="9.00" departLane="C0_2" departPos="4.10" departSpeed="0.00" departDelay="0.00" arrival="76.00" arrivalLane="B1_0" arrivalPos="86.40" arrivalSpeed="6.20" duration="67.00" routeLength="193.21" waitingTime="28.00" waitingCount="1" stopTime="0.00" timeLoss="36.93" rerouteNo="0" devices="tripinfo_vehicle_183" vType="car_065_red" speedFactor="0.83" vaporized=""/>
+    <tripinfo id="vehicle_205" depart="27.00" departLane="C0_1" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="77.00" arrivalLane="A1_0" arrivalPos="86.40" arrivalSpeed="6.52" duration="50.00" routeLength="197.90" waitingTime="11.00" waitingCount="1" stopTime="0.00" timeLoss="21.61" rerouteNo="0" devices="tripinfo_vehicle_205" vType="motorcycle_070_red" speedFactor="1.05" vaporized=""/>
+    <tripinfo id="vehicle_002" depart="16.00" departLane="D0_2" departPos="2.10" departSpeed="0.00" departDelay="0.00" arrival="86.00" arrivalLane="C1_0" arrivalPos="86.40" arrivalSpeed="1.90" duration="70.00" routeLength="195.21" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="18.51" rerouteNo="0" devices="tripinfo_vehicle_002" vType="motorcycle_038_blue" speedFactor="0.94" vaporized=""/>
+</tripinfos>

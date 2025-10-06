@@ -1,0 +1,19 @@
+<configuration>
+    <input>
+        <net-file>../net/network.net.xml</net-file>
+        <route-files>../routes/csv_vehicles_sorted.rou.xml</route-files>
+    </input>
+
+    <time>
+        <begin>0</begin>
+        <end>350</end>
+    </time>
+    
+    <processing>
+        <collision.action>warn</collision.action>
+    </processing>
+    
+    <report>
+        <verbose>true</verbose>
+    </report>
+</configuration>

@@ -1,0 +1,24 @@
+<connections>
+    <!-- North to all directions - using all 3 lanes -->
+    <!-- Lane 0: Right turn -->
+    <connection from="A0" to="B1" fromLane="0" toLane="0"/>
+    <!-- Lane 1: Straight -->
+    <connection from="A0" to="C1" fromLane="1" toLane="1"/>
+    <!-- Lane 2: Left turn -->
+    <connection from="A0" to="D1" fromLane="2" toLane="2"/>
+    
+    <!-- South to all directions - using all 3 lanes -->
+    <connection from="C0" to="D1" fromLane="0" toLane="0"/>
+    <connection from="C0" to="A1" fromLane="1" toLane="1"/>
+    <connection from="C0" to="B1" fromLane="2" toLane="2"/>
+    
+    <!-- East to all directions - using all 3 lanes -->
+    <connection from="D0" to="A1" fromLane="0" toLane="0"/>
+    <connection from="D0" to="B1" fromLane="1" toLane="1"/>
+    <connection from="D0" to="C1" fromLane="2" toLane="2"/>
+    
+    <!-- West to all directions - using all 3 lanes -->
+    <connection from="B0" to="C1" fromLane="0" toLane="0"/>
+    <connection from="B0" to="D1" fromLane="1" toLane="1"/>
+    <connection from="B0" to="A1" fromLane="2" toLane="2"/>
+</connections>

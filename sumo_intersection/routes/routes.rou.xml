@@ -1,0 +1,75 @@
+<routes>
+    <!-- Indian Vehicle Types -->
+    <vType id="car" accel="2.5" decel="4.5" sigma="0.8" 
+           length="4.0" minGap="0.8" maxSpeed="15.0" color="1,0,0"/>
+    
+    <vType id="motorcycle" accel="3.5" decel="6.0" sigma="0.9" 
+           length="2.0" minGap="0.5" maxSpeed="18.0" color="0,0,1" width="0.8"/>
+    
+    <vType id="autorickshaw" accel="2.0" decel="4.0" sigma="0.7" 
+           length="3.2" minGap="0.7" maxSpeed="12.0" color="1,1,0" width="1.4"/>
+    
+    <vType id="bus" accel="1.5" decel="3.5" sigma="0.3" 
+           length="12.0" minGap="1.5" maxSpeed="13.0" color="0,1,0"/>
+    
+    <vType id="truck" accel="1.2" decel="3.0" sigma="0.2" 
+           length="8.0" minGap="2.0" maxSpeed="12.0" color="0.5,0.5,0.5"/>
+
+    <!-- Routes for all directions -->
+    <route id="north_to_south" edges="A0 C1"/>
+    <route id="north_to_east" edges="A0 D1"/>
+    <route id="north_to_west" edges="A0 B1"/>
+    
+    <route id="south_to_north" edges="C0 A1"/>
+    <route id="south_to_east" edges="C0 D1"/>
+    <route id="south_to_west" edges="C0 B1"/>
+    
+    <route id="east_to_west" edges="D0 B1"/>
+    <route id="east_to_north" edges="D0 A1"/>
+    <route id="east_to_south" edges="D0 C1"/>
+    
+    <route id="west_to_east" edges="B0 D1"/>
+    <route id="west_to_north" edges="B0 A1"/>
+    <route id="west_to_south" edges="B0 C1"/>
+
+    <!-- Mixed traffic flow with realistic Indian proportions -->
+    <flow id="cars_ns" type="car" route="north_to_south" begin="0" end="3600" vehsPerHour="300"/>
+    <flow id="bikes_ns" type="motorcycle" route="north_to_south" begin="0" end="3600" vehsPerHour="800"/>
+    <flow id="auto_ns" type="autorickshaw" route="north_to_south" begin="0" end="3600" vehsPerHour="200"/>
+    <flow id="bus_ns" type="bus" route="north_to_south" begin="0" end="3600" vehsPerHour="50"/>
+    
+    <flow id="cars_sn" type="car" route="south_to_north" begin="0" end="3600" vehsPerHour="280"/>
+    <flow id="bikes_sn" type="motorcycle" route="south_to_north" begin="0" end="3600" vehsPerHour="750"/>
+    <flow id="auto_sn" type="autorickshaw" route="south_to_north" begin="0" end="3600" vehsPerHour="180"/>
+    
+    <flow id="cars_ew" type="car" route="east_to_west" begin="0" end="3600" vehsPerHour="250"/>
+    <flow id="bikes_ew" type="motorcycle" route="east_to_west" begin="0" end="3600" vehsPerHour="600"/>
+    <flow id="auto_ew" type="autorickshaw" route="east_to_west" begin="0" end="3600" vehsPerHour="150"/>
+    
+    <flow id="cars_we" type="car" route="west_to_east" begin="0" end="3600" vehsPerHour="270"/>
+    <flow id="bikes_we" type="motorcycle" route="west_to_east" begin="0" end="3600" vehsPerHour="650"/>
+    <flow id="trucks_we" type="truck" route="west_to_east" begin="0" end="3600" vehsPerHour="100"/>
+
+    <!-- Update the connection usage by adding more turning movements -->
+
+    <!-- Add more diverse turning movements -->
+    <flow id="cars_ne" type="car" route="north_to_east" begin="0" end="3600" vehsPerHour="150"/>
+    <flow id="cars_nw" type="car" route="north_to_west" begin="0" end="3600" vehsPerHour="100"/>
+    <flow id="bikes_ne" type="motorcycle" route="north_to_east" begin="0" end="3600" vehsPerHour="400"/>
+    <flow id="bikes_nw" type="motorcycle" route="north_to_west" begin="0" end="3600" vehsPerHour="300"/>
+
+    <flow id="cars_se" type="car" route="south_to_east" begin="0" end="3600" vehsPerHour="140"/>
+    <flow id="cars_sw" type="car" route="south_to_west" begin="0" end="3600" vehsPerHour="90"/>
+    <flow id="bikes_se" type="motorcycle" route="south_to_east" begin="0" end="3600" vehsPerHour="380"/>
+    <flow id="bikes_sw" type="motorcycle" route="south_to_west" begin="0" end="3600" vehsPerHour="280"/>
+
+    <flow id="cars_en" type="car" route="east_to_north" begin="0" end="3600" vehsPerHour="120"/>
+    <flow id="cars_es" type="car" route="east_to_south" begin="0" end="3600" vehsPerHour="110"/>
+    <flow id="bikes_en" type="motorcycle" route="east_to_north" begin="0" end="3600" vehsPerHour="350"/>
+    <flow id="bikes_es" type="motorcycle" route="east_to_south" begin="0" end="3600" vehsPerHour="320"/>
+
+    <flow id="cars_wn" type="car" route="west_to_north" begin="0" end="3600" vehsPerHour="130"/>
+    <flow id="cars_ws" type="car" route="west_to_south" begin="0" end="3600" vehsPerHour="115"/>
+    <flow id="bikes_wn" type="motorcycle" route="west_to_north" begin="0" end="3600" vehsPerHour="360"/>
+    <flow id="bikes_ws" type="motorcycle" route="west_to_south" begin="0" end="3600" vehsPerHour="340"/>
+</routes>

@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<configuration>
+    <input>
+        <net-file value="../net/network.net.xml"/>
+        <route-files value="../routes/data2_vehicles.rou.xml"/>
+    </input>
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+        <step-length value="1"/>
+    </time>
+    <processing>
+        <time-to-teleport value="300"/>
+        <no-internal-links value="false"/>
+    </processing>
+    <output>
+        <no-step-log value="true"/>
+        <no-warnings value="true"/>
+    </output>
+    <report>
+        <verbose value="false"/>
+        <no-step-log value="true"/>
+    </report>
+</configuration>

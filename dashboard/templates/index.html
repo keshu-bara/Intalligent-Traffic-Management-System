@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUMO Traffic Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#2563eb',
+                        'success': '#10b981',
+                        'danger': '#ef4444',
+                        'warning': '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl shadow-2xl p-8 mb-6">
+            <h1 class="text-4xl font-bold text-center mb-2">🚦 SUMO Traffic Control Dashboard</h1>
+            <p class="text-center text-blue-100 text-lg">Real-time Junction Traffic Analysis & Congestion Monitoring</p>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex flex-wrap items-center gap-6">
+                <!-- Status -->
+                <div id="status" class="status-disconnected px-4 py-2 rounded-full font-semibold flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-current animate-pulse"></span>
+                    Status: Disconnected
+                </div>
+                
+                <!-- Config Selector -->
+                <div class="flex items-center gap-3">
+                    <label class="font-medium text-gray-700">Configuration:</label>
+                    <select id="configSelect" class="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors">
+                        {% for config in configs %}
+                            <option value="{{ config }}">{{ config }}</option>
+                        {% endfor %}
+                    </select>
+                    <button onclick="selectConfig()" class="btn-primary px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105">
+                        Select
+                    </button>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3 ml-auto">
+                    <button onclick="startSimulation()" class="btn-success px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2">
+                        <span>▶</span> Start
+                    </button>
+                    <button onclick="stopSimulation()" class="btn-danger px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2">
+                        <span>⏹</span> Stop
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manual Traffic Light Control Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6" id="traffic-control-panel">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">🚦 Manual Traffic Light Control</h2>
+                <div class="flex items-center gap-3">
+                    <label class="font-medium text-gray-700">Manual Mode:</label>
+                    <button id="manual-mode-toggle" onclick="toggleManualMode()" 
+                            class="px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-gray-400 text-white">
+                        OFF
+                    </button>
+                </div>
+            </div>
+            
+            <div id="manual-controls" class="grid grid-cols-2 lg:grid-cols-4 gap-4" style="display: none;">
+                <!-- North Control -->
+                <div class="text-center">
+                    <h3 class="font-semibold mb-2">North ↑</h3>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="setTrafficLight('north', 'green')" 
+                                class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600">Green</button>
+                        <button onclick="setTrafficLight('north', 'yellow')" 
+                                class="px-3 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600">Yellow</button>
+                        <button onclick="setTrafficLight('north', 'red')" 
+                                class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">Red</button>
+                    </div>
+                </div>
+                
+                <!-- East Control -->
+                <div class="text-center">
+                    <h3 class="font-semibold mb-2">East →</h3>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="setTrafficLight('east', 'green')" 
+                                class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600">Green</button>
+                        <button onclick="setTrafficLight('east', 'yellow')" 
+                                class="px-3 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600">Yellow</button>
+                        <button onclick="setTrafficLight('east', 'red')" 
+                                class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">Red</button>
+                    </div>
+                </div>
+                
+                <!-- South Control -->
+                <div class="text-center">
+                    <h3 class="font-semibold mb-2">South ↓</h3>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="setTrafficLight('south', 'green')" 
+                                class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600">Green</button>
+                        <button onclick="setTrafficLight('south', 'yellow')" 
+                                class="px-3 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600">Yellow</button>
+                        <button onclick="setTrafficLight('south', 'red')" 
+                                class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">Red</button>
+                    </div>
+                </div>
+                
+                <!-- West Control -->
+                <div class="text-center">
+                    <h3 class="font-semibold mb-2">West ←</h3>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="setTrafficLight('west', 'green')" 
+                                class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600">Green</button>
+                        <button onclick="setTrafficLight('west', 'yellow')" 
+                                class="px-3 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600">Yellow</button>
+                        <button onclick="setTrafficLight('west', 'red')" 
+                                class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">Red</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- North Direction -->
+            <div class="direction-card bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-500">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="direction-icon bg-red-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">
+                        ↑
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">North Bound</h3>
+                    <!-- ADD THIS TRAFFIC LIGHT STATUS -->
+                    <div id="north-traffic-light" class="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-gray-300">
+                        Unknown
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="north-count">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Vehicle Count</div>
+                    </div>
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="north-speed">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Avg Speed (m/s)</div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-700">Congestion Level:</span>
+                        <span id="north-congestion-text" class="font-bold text-green-600">Low</span>
+                    </div>
+                    <div class="congestion-bar bg-gray-200 h-3 rounded-full overflow-hidden">
+                        <div id="north-congestion-bar" class="h-full transition-all duration-500 congestion-low" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="vehicle-list bg-white/70 backdrop-blur rounded-lg p-3 max-h-40 overflow-y-auto" id="north-vehicles">
+                    <!-- Vehicle items will be populated here -->
+                </div>
+            </div>
+            
+            <!-- East Direction -->
+            <div class="direction-card bg-gradient-to-br from-blue-50 to-blue-100 border-l-4 border-blue-500">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="direction-icon bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">
+                        →
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">East Bound</h3>
+                    <!-- ADD THIS TRAFFIC LIGHT STATUS -->
+                    <div id="east-traffic-light" class="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-gray-300">
+                        Unknown
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="east-count">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Vehicle Count</div>
+                    </div>
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="east-speed">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Avg Speed (m/s)</div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-700">Congestion Level:</span>
+                        <span id="east-congestion-text" class="font-bold text-green-600">Low</span>
+                    </div>
+                    <div class="congestion-bar bg-gray-200 h-3 rounded-full overflow-hidden">
+                        <div id="east-congestion-bar" class="h-full transition-all duration-500 congestion-low" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="vehicle-list bg-white/70 backdrop-blur rounded-lg p-3 max-h-40 overflow-y-auto" id="east-vehicles">
+                    <!-- Vehicle items will be populated here -->
+                </div>
+            </div>
+            
+            <!-- South Direction -->
+            <div class="direction-card bg-gradient-to-br from-teal-50 to-teal-100 border-l-4 border-teal-500">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="direction-icon bg-teal-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">
+                        ↓
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">South Bound</h3>
+                    <!-- ADD THIS TRAFFIC LIGHT STATUS -->
+                    <div id="south-traffic-light" class="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-gray-300">
+                        Unknown
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="south-count">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Vehicle Count</div>
+                    </div>
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="south-speed">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Avg Speed (m/s)</div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-700">Congestion Level:</span>
+                        <span id="south-congestion-text" class="font-bold text-green-600">Low</span>
+                    </div>
+                    <div class="congestion-bar bg-gray-200 h-3 rounded-full overflow-hidden">
+                        <div id="south-congestion-bar" class="h-full transition-all duration-500 congestion-low" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="vehicle-list bg-white/70 backdrop-blur rounded-lg p-3 max-h-40 overflow-y-auto" id="south-vehicles">
+                    <!-- Vehicle items will be populated here -->
+                </div>
+            </div>
+            
+            <!-- West Direction -->
+            <div class="direction-card bg-gradient-to-br from-green-50 to-green-100 border-l-4 border-green-500">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="direction-icon bg-green-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">
+                        ←
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">West Bound</h3>
+                    <!-- ADD THIS TRAFFIC LIGHT STATUS -->
+                    <div id="west-traffic-light" class="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-gray-300">
+                        Unknown
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="west-count">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Vehicle Count</div>
+                    </div>
+                    <div class="metric-card bg-white/70 backdrop-blur p-4 rounded-lg text-center">
+                        <div class="metric-value text-3xl font-bold text-gray-800" id="west-speed">0</div>
+                        <div class="metric-label text-gray-600 text-sm">Avg Speed (m/s)</div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-700">Congestion Level:</span>
+                        <span id="west-congestion-text" class="font-bold text-green-600">Low</span>
+                    </div>
+                    <div class="congestion-bar bg-gray-200 h-3 rounded-full overflow-hidden">
+                        <div id="west-congestion-bar" class="h-full transition-all duration-500 congestion-low" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="vehicle-list bg-white/70 backdrop-blur rounded-lg p-3 max-h-40 overflow-y-auto" id="west-vehicles">
+                    <!-- Vehicle items will be populated here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div class="summary-item">
+                    <div class="text-3xl font-bold text-gray-800" id="total-vehicles">0</div>
+                    <div class="text-gray-600">Total Vehicles</div>
+                </div>
+                <div class="summary-item">
+                    <div class="text-3xl font-bold text-gray-800" id="simulation-step">0</div>
+                    <div class="text-gray-600">Simulation Step</div>
+                </div>
+                <div class="summary-item">
+                    <div class="text-3xl font-bold text-gray-800" id="avg-speed">0</div>
+                    <div class="text-gray-600">Overall Avg Speed</div>
+                </div>
+                <div class="summary-item">
+                    <div class="text-3xl font-bold text-green-600" id="overall-congestion">Low</div>
+                    <div class="text-gray-600">Overall Status</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Traffic Statistics</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600" id="total-passed">0</div>
+                    <div class="text-gray-600">Vehicles Passed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600" id="total-time">0</div>
+                    <div class="text-gray-600">Total Time (min)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-orange-600" id="congestion-events">0</div>
+                    <div class="text-gray-600">Congestion Events</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="peak-vehicles">0</div>
+                    <div class="text-gray-600">Peak Vehicle Count</div>
+                </div>
+            </div>
+            
+            <!-- Congestion History -->
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-3">Recent Congestion Events</h3>
+                <div id="congestion-history" class="max-h-32 overflow-y-auto bg-gray-50 rounded-lg p-3">
+                    <div class="text-gray-500 text-center">No congestion events yet</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-600">
+            <p>© 2025 SUMO Traffic Simulation Dashboard. All rights reserved.</p>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

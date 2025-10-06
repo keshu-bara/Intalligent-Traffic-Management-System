@@ -1,0 +1,17 @@
+<edges>
+    <!-- North (A) - Multi-lane with turning lanes -->
+    <edge id="A0" from="A" to="J" numLanes="3" speed="13.9"/>
+    <edge id="A1" from="J" to="A" numLanes="3" speed="13.9"/>
+
+    <!-- West (B) -->
+    <edge id="B0" from="B" to="J" numLanes="3" speed="13.9"/>
+    <edge id="B1" from="J" to="B" numLanes="3" speed="13.9"/>
+
+    <!-- South (C) -->
+    <edge id="C0" from="C" to="J" numLanes="3" speed="13.9"/>
+    <edge id="C1" from="J" to="C" numLanes="3" speed="13.9"/>
+
+    <!-- East (D) -->
+    <edge id="D0" from="D" to="J" numLanes="3" speed="13.9"/>
+    <edge id="D1" from="J" to="D" numLanes="3" speed="13.9"/>
+</edges>

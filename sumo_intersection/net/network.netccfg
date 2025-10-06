@@ -1,0 +1,11 @@
+<configuration>
+    <input>
+        <node-files>nodes.nod.xml</node-files>
+        <edge-files>edges.edg.xml</edge-files>
+        <connection-files>connections.con.xml</connection-files>
+        <tllogic-files>traffic_lights.tll.xml</tllogic-files>
+    </input>
+    <output>
+        <net-file>network.net.xml</net-file>
+    </output>
+</configuration>
