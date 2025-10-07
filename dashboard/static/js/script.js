@@ -506,30 +506,34 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Debug function - run this in browser console while simulation is running
-function debugTrafficLights() {
-    fetch('/api/data')
-        .then(r => r.json())
-        .then(data => {
-            const tl = data.traffic_lights;
-            console.log('=== TRAFFIC LIGHT DEBUG ===');
-            Object.keys(tl).forEach(tlId => {
-                const state = tl[tlId].state || tl[tlId];
-                console.log(`TL ID: ${tlId}`);
-                console.log(`State: "${state}" (length: ${state.length})`);
-                console.log('Character breakdown:');
-                for(let i = 0; i < state.length; i++) {
-                    console.log(`  Position ${i}: ${state[i]}`);
-                }
-            });
-        });
+async function debugTrafficLights() {
+    try {
+        const response = await fetch('/api/debug/traffic_lights');
+        const data = await response.json();
+        console.log('=== TRAFFIC LIGHT DEBUG INFO ===');
+        console.log(data);
+        return data;
+    } catch (error) {
+        console.error('Debug failed:', error);
+    }
 }
 
 // Run this in console:
 // debugTrafficLights();
 
-// Add these new functions for manual traffic light control
+// Replace the toggleManualMode function:
+
 async function toggleManualMode() {
     try {
+        // First check if simulation is running
+        const statusResponse = await fetch('/api/status');
+        const statusData = await statusResponse.json();
+        
+        if (!statusData.running) {
+            showNotification('Start SUMO simulation first before enabling manual mode', 'error');
+            return;
+        }
+        
         const newMode = !DashboardState.manualMode;
         
         showNotification(`${newMode ? 'Enabling' : 'Disabling'} manual mode...`, 'info');
@@ -542,12 +546,15 @@ async function toggleManualMode() {
             body: JSON.stringify({ manual_mode: newMode })
         });
         
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         
         if (data.error) {
             showNotification(data.error, 'error');
+            console.error('Manual mode error:', data.error);
             return;
         }
         
@@ -571,11 +578,11 @@ async function toggleManualMode() {
         
     } catch (error) {
         console.error('Error toggling manual mode:', error);
-        showNotification('Failed to toggle manual mode', 'error');
+        showNotification(`Failed to toggle manual mode: ${error.message}`, 'error');
     }
 }
 
-// Enhanced setTrafficLight function with better feedback:
+// Enhanced setTrafficLight function:
 async function setTrafficLight(direction, state) {
     if (!DashboardState.manualMode) {
         showNotification('Enable manual mode first', 'warning');
@@ -596,23 +603,28 @@ async function setTrafficLight(direction, state) {
             })
         });
         
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         
         if (data.error) {
             showNotification(data.error, 'error');
+            console.error('Traffic control error:', data.error);
             return;
         }
         
         if (data.success) {
             showNotification(`${direction.toUpperCase()} set to ${state.toUpperCase()}`, 'success');
-            console.log('Current traffic light state:', data.current_state);
+            console.log('Traffic light updated successfully:');
+            console.log('- Current state:', data.current_state);
+            console.log('- Verified state:', data.verified_state);
         }
         
     } catch (error) {
         console.error('Error controlling traffic light:', error);
-        showNotification('Failed to control traffic light', 'error');
+        showNotification(`Failed to control traffic light: ${error.message}`, 'error');
     }
 }
 

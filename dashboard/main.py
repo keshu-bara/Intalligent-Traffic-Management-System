@@ -61,9 +61,17 @@ simu_files = [f for f in os.listdir(simulation_files_path) if f.endswith(".sumoc
 def cleanup_sumo():
     """Ensure SUMO is closed on exit"""
     global sumo_running
+    sumo_running = False  # Set this first
     try:
-        if traci.isLoaded():
-            traci.close()
+        # Check if TraCI is connected
+        if 'traci' in globals():
+            try:
+                # Try to get simulation step to test connection
+                traci.simulation.getTime()
+                traci.close()
+                print("TraCI connection closed properly")
+            except:
+                pass
     except:
         pass
 
@@ -72,8 +80,6 @@ def cleanup_sumo():
         os.system("taskkill /f /im sumo.exe >nul 2>&1")
     except:
         pass
-            
-    sumo_running = False
 
 def start_sumo():
     """Enhanced SUMO simulation with manual control and statistics"""
@@ -290,31 +296,48 @@ async def get_simulation_data_fast():
 
 @app.post("/api/traffic_light/mode")
 def set_traffic_light_mode(mode: TrafficLightMode):
-    """Enable/disable manual traffic light control"""
+    """Enable/disable manual traffic light control with proper connection check"""
     global traffic_light_manual_mode, manual_traffic_states
+    
+    # Check if SUMO is actually running
+    if not sumo_running:
+        return {"error": "SUMO simulation is not running. Start simulation first."}
+    
+    # Test TraCI connection
+    try:
+        # Try to get traffic light IDs to verify connection
+        tl_ids = traci.trafficlight.getIDList()
+        if not tl_ids:
+            return {"error": "No traffic lights found in simulation"}
+        print(f"Found traffic lights: {tl_ids}")
+    except Exception as e:
+        return {"error": f"TraCI connection error: {e}"}
     
     traffic_light_manual_mode = mode.manual_mode
     
     if mode.manual_mode:
         # When enabling manual mode, initialize all lights to RED
         try:
-            tl_ids = traci.trafficlight.getIDList()
-            if tl_ids:
-                main_tl = tl_ids[0]
-                # Set all directions to RED initially
-                manual_traffic_states[main_tl] = "rrrr"
-                
-                # Apply the red state immediately
-                traci.trafficlight.setRedYellowGreenState(main_tl, "rrrr")
-                traci.trafficlight.setPhaseDuration(main_tl, 999)  # Long duration
-                
-                return {"message": "Manual mode enabled - All lights set to RED"}
+            main_tl = tl_ids[0]
+            print(f"Setting manual control for traffic light: {main_tl}")
+            
+            # Set all directions to RED initially
+            manual_traffic_states[main_tl] = "rrrr"
+            
+            # Apply the red state immediately
+            traci.trafficlight.setRedYellowGreenState(main_tl, "rrrr")
+            traci.trafficlight.setPhaseDuration(main_tl, 999)  # Long duration
+            
+            print(f"Manual mode enabled - All lights set to RED for {main_tl}")
+            return {"message": "Manual mode enabled - All lights set to RED"}
+            
         except Exception as e:
+            traffic_light_manual_mode = False  # Reset on failure
+            print(f"Failed to enable manual mode: {e}")
             return {"error": f"Failed to enable manual mode: {e}"}
     else:
         # When disabling manual mode, restore automatic control
         try:
-            tl_ids = traci.trafficlight.getIDList()
             if tl_ids:
                 main_tl = tl_ids[0]
                 # Clear manual states
@@ -323,26 +346,35 @@ def set_traffic_light_mode(mode: TrafficLightMode):
                 # Restore automatic control by setting back to program 0
                 traci.trafficlight.setProgram(main_tl, "0")
                 
+                print("Automatic mode restored")
                 return {"message": "Automatic mode restored"}
         except Exception as e:
+            print(f"Failed to restore automatic mode: {e}")
             return {"error": f"Failed to restore automatic mode: {e}"}
     
     return {"message": f"Manual mode: {'enabled' if mode.manual_mode else 'disabled'}"}
 
 @app.post("/api/traffic_light/control")
 def control_traffic_light(control: TrafficLightControl):
-    """Control individual traffic light direction with proper validation"""
+    """Control individual traffic light direction with comprehensive error handling"""
     global manual_traffic_states
     
+    # Check if SUMO is running
+    if not sumo_running:
+        return {"error": "SUMO simulation is not running"}
+    
+    # Check if manual mode is enabled
     if not traffic_light_manual_mode:
-        return {"error": "Manual mode not enabled"}
+        return {"error": "Manual mode not enabled. Enable manual mode first."}
     
     try:
+        # Get traffic light IDs with error handling
         tl_ids = traci.trafficlight.getIDList()
         if not tl_ids:
-            return {"error": "No traffic lights found"}
+            return {"error": "No traffic lights found in simulation"}
             
         main_tl = tl_ids[0]
+        print(f"Controlling traffic light: {main_tl}")
         
         # Convert direction and state to SUMO format
         direction_map = {"north": 0, "east": 1, "south": 2, "west": 3}
@@ -350,9 +382,9 @@ def control_traffic_light(control: TrafficLightControl):
         
         # Validate inputs
         if control.direction not in direction_map:
-            return {"error": f"Invalid direction: {control.direction}"}
+            return {"error": f"Invalid direction: {control.direction}. Valid: {list(direction_map.keys())}"}
         if control.state not in state_map:
-            return {"error": f"Invalid state: {control.state}"}
+            return {"error": f"Invalid state: {control.state}. Valid: {list(state_map.keys())}"}
         
         # Initialize manual state if not exists
         if main_tl not in manual_traffic_states:
@@ -368,20 +400,30 @@ def control_traffic_light(control: TrafficLightControl):
             current_state.append('r')
         
         current_state[direction_index] = new_state
-        manual_traffic_states[main_tl] = "".join(current_state)
+        new_traffic_state = "".join(current_state)
+        manual_traffic_states[main_tl] = new_traffic_state
         
-        # Apply the change immediately
-        traci.trafficlight.setRedYellowGreenState(main_tl, manual_traffic_states[main_tl])
+        print(f"Setting {control.direction} to {control.state}")
+        print(f"New traffic state: {new_traffic_state}")
+        
+        # Apply the change immediately with error handling
+        traci.trafficlight.setRedYellowGreenState(main_tl, new_traffic_state)
         traci.trafficlight.setPhaseDuration(main_tl, 999)  # Keep long duration
+        
+        # Verify the change was applied
+        current_phase = traci.trafficlight.getRedYellowGreenState(main_tl)
+        print(f"Verified traffic light state: {current_phase}")
         
         return {
             "message": f"Set {control.direction} to {control.state}",
-            "current_state": manual_traffic_states[main_tl],
+            "current_state": new_traffic_state,
+            "verified_state": current_phase,
             "success": True
         }
         
     except Exception as e:
-        return {"error": f"Control failed: {e}"}
+        print(f"Traffic light control failed: {e}")
+        return {"error": f"Control failed: {str(e)}"}
 
 @app.get("/api/statistics")
 def get_traffic_statistics():
