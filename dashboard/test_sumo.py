@@ -5,6 +5,381 @@ import threading
 import torch  # Add this missing import
 from dqn_model import DQNAgent, EnhancedDQNAgent
 
+#for dashboard
+import json
+import os
+from datetime import datetime
+
+#for exp32
+import requests
+import socket
+
+
+# Add this class after your existing DashboardDataSender class
+class ESP32DataSender:
+    def __init__(self, esp32_ip="192.168.1.100", esp32_port=80):
+        self.esp32_ip = esp32_ip
+        self.esp32_port = esp32_port
+        self.esp32_url = f"http://{esp32_ip}:{esp32_port}"
+        
+        # Traffic light state mapping for ESP32
+        self.phase_to_esp32 = {
+            "GGGrrrrrrrrr": {
+                "direction": "North",
+                "color": "GREEN",
+                "led_pattern": [1, 0, 0, 0],  # North=1, South=0, East=0, West=0
+                "display_code": "N_GREEN"
+            },
+            "rrrrrrGGGrrr": {
+                "direction": "South", 
+                "color": "GREEN",
+                "led_pattern": [0, 1, 0, 0],
+                "display_code": "S_GREEN"
+            },
+            "rrrGGGrrrrrr": {
+                "direction": "East",
+                "color": "GREEN", 
+                "led_pattern": [0, 0, 1, 0],
+                "display_code": "E_GREEN"
+            },
+            "rrrrrrrrrGGG": {
+                "direction": "West",
+                "color": "GREEN",
+                "led_pattern": [0, 0, 0, 1],
+                "display_code": "W_GREEN"
+            }
+        }
+    
+    def send_traffic_light_state(self, step, action, phase, duration, traffic_state=None):
+        """Send traffic light state to ESP32"""
+        try:
+            # Get ESP32 format data
+            esp32_data = self.phase_to_esp32.get(phase, {
+                "direction": "Unknown",
+                "color": "RED", 
+                "led_pattern": [0, 0, 0, 0],
+                "display_code": "ALL_RED"
+            })
+            
+            # Prepare data packet for ESP32
+            data_packet = {
+                "timestamp": datetime.now().isoformat(),
+                "simulation_step": step,
+                "action": action,
+                "phase_state": phase,
+                "duration_seconds": duration,
+                
+                # ESP32 specific data
+                "traffic_light": {
+                    "direction": esp32_data["direction"],
+                    "color": esp32_data["color"],
+                    "led_pattern": esp32_data["led_pattern"],
+                    "display_code": esp32_data["display_code"],
+                    "duration": duration
+                },
+                
+                # Traffic conditions (if available)
+                "traffic_conditions": self._format_traffic_for_esp32(traffic_state) if traffic_state is not None else {},
+                
+                # Control commands
+                "commands": {
+                    "update_display": True,
+                    "set_leds": esp32_data["led_pattern"],
+                    "show_duration": duration,
+                    "buzzer_alert": duration > 30  # Alert for long phases
+                }
+            }
+            
+            # Send via HTTP POST
+            self._send_http_data(data_packet)
+            
+            # Also send via UDP for real-time updates
+            self._send_udp_data(data_packet)
+            
+            print(f"📡 ESP32: Sent {esp32_data['direction']} {esp32_data['color']} for {duration}s")
+            
+        except Exception as e:
+            print(f"❌ ESP32 send error: {e}")
+    
+    def send_traffic_metrics(self, step, state):
+        """Send traffic metrics to ESP32 for display"""
+        try:
+            if len(state) >= 12:
+                metrics_packet = {
+                    "timestamp": datetime.now().isoformat(),
+                    "type": "traffic_metrics",
+                    "step": step,
+                    
+                    "metrics": {
+                        "north_vehicles": int(state[0] * 10),
+                        "south_vehicles": int(state[3] * 10), 
+                        "east_vehicles": int(state[6] * 10),
+                        "west_vehicles": int(state[9] * 10),
+                        
+                        "north_congestion": int(state[1] * 100),  # Percentage
+                        "south_congestion": int(state[4] * 100),
+                        "east_congestion": int(state[7] * 100), 
+                        "west_congestion": int(state[10] * 100),
+                        
+                        "total_vehicles": int(sum([state[i] for i in [0, 3, 6, 9]]) * 10),
+                        "avg_congestion": int(sum([state[i] for i in [1, 4, 7, 10]]) * 25)
+                    },
+                    
+                    "display_info": {
+                        "busiest_direction": ["N", "S", "E", "W"][max(range(4), key=lambda i: state[i*3])],
+                        "congestion_level": "HIGH" if sum([state[i] for i in [1, 4, 7, 10]]) > 2.0 else "NORMAL"
+                    }
+                }
+                
+                self._send_http_data(metrics_packet, endpoint="/metrics")
+                
+        except Exception as e:
+            print(f"❌ ESP32 metrics error: {e}")
+    
+    def send_emergency_alert(self, message, priority="HIGH"):
+        """Send emergency alert to ESP32"""
+        try:
+            alert_packet = {
+                "timestamp": datetime.now().isoformat(),
+                "type": "emergency_alert",
+                "message": message,
+                "priority": priority,
+                "commands": {
+                    "flash_leds": True,
+                    "buzzer_pattern": "EMERGENCY" if priority == "HIGH" else "ALERT",
+                    "display_message": message[:16]  # 16 char limit for LCD
+                }
+            }
+            
+            self._send_http_data(alert_packet, endpoint="/emergency")
+            self._send_udp_data(alert_packet)  # Ensure delivery
+            
+            print(f"🚨 ESP32: Emergency alert sent - {message}")
+            
+        except Exception as e:
+            print(f"❌ ESP32 emergency error: {e}")
+    
+    def _send_http_data(self, data, endpoint="/update"):
+        """Send data via HTTP POST"""
+        try:
+            url = f"{self.esp32_url}{endpoint}"
+            response = requests.post(
+                url, 
+                json=data,
+                timeout=2,  # Quick timeout to avoid blocking simulation
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code == 200:
+                print(f"✅ ESP32 HTTP: Data sent successfully")
+            else:
+                print(f"⚠️ ESP32 HTTP: Response code {response.status_code}")
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ ESP32 HTTP error: {e}")
+    
+    def _send_udp_data(self, data):
+        """Send data via UDP for real-time updates"""
+        try:
+            # Convert to compact format for UDP
+            udp_data = {
+                "action": data.get("action", 0),
+                "duration": data.get("duration_seconds", 15),
+                "leds": data.get("commands", {}).get("set_leds", [0,0,0,0]),
+                "alert": data.get("commands", {}).get("buzzer_alert", False)
+            }
+            
+            json_data = json.dumps(udp_data).encode('utf-8')
+            
+            # Send UDP packet
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(1)
+            sock.sendto(json_data, (self.esp32_ip, 8888))  # UDP port 8888
+            sock.close()
+            
+            print(f"📡 ESP32 UDP: Quick update sent")
+            
+        except Exception as e:
+            print(f"❌ ESP32 UDP error: {e}")
+    
+    def _format_traffic_for_esp32(self, state):
+        """Format traffic state for ESP32 display"""
+        if len(state) < 12:
+            return {}
+        
+        return {
+            "directions": {
+                "N": {"vehicles": int(state[0]*10), "cong": int(state[1]*100)},
+                "S": {"vehicles": int(state[3]*10), "cong": int(state[4]*100)}, 
+                "E": {"vehicles": int(state[6]*10), "cong": int(state[7]*100)},
+                "W": {"vehicles": int(state[9]*10), "cong": int(state[10]*100)}
+            },
+            "summary": {
+                "total": int(sum([state[i] for i in [0,3,6,9]])*10),
+                "worst": ["N","S","E","W"][max(range(4), key=lambda i: state[i*3+1])]
+            }
+        }
+    
+    def test_connection(self):
+        """Test ESP32 connection"""
+        try:
+            test_data = {
+                "type": "connection_test",
+                "timestamp": datetime.now().isoformat(),
+                "message": "Testing ESP32 connection from SUMO simulation"
+            }
+            
+            response = requests.post(
+                f"{self.esp32_url}/test",
+                json=test_data,
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                print("✅ ESP32 connection successful!")
+                return True
+            else:
+                print(f"⚠️ ESP32 connection failed: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ ESP32 connection test failed: {e}")
+            return False
+
+# Dashboard
+class DashboardDataSender:
+    def __init__(self, data_dir="dashboard_data"):
+        self.data_dir = data_dir
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # Initialize files
+        self.files = {
+            'traffic_states': os.path.join(data_dir, "traffic_states.json"),
+            'performance': os.path.join(data_dir, "performance.json"),
+            'phase_changes': os.path.join(data_dir, "phase_changes.json"),
+            'rewards': os.path.join(data_dir, "rewards.json")
+        }
+        
+        # Initialize with empty arrays
+        for file_path in self.files.values():
+            if not os.path.exists(file_path):
+                with open(file_path, 'w') as f:
+                    json.dump([], f)
+    
+    def send_traffic_state(self, step, state):
+        """Send traffic state to dashboard"""
+        try:
+            data = {
+                "timestamp": datetime.now().isoformat(),
+                "step": step,
+                "traffic_data": {
+                    "north": {
+                        "vehicle_count": float(state[0]) * 10,
+                        "congestion_ratio": float(state[1]),
+                        "avg_speed_kmh": float(state[2]) * 54
+                    },
+                    "south": {
+                        "vehicle_count": float(state[3]) * 10,
+                        "congestion_ratio": float(state[4]),
+                        "avg_speed_kmh": float(state[5]) * 54
+                    },
+                    "east": {
+                        "vehicle_count": float(state[6]) * 10,
+                        "congestion_ratio": float(state[7]),
+                        "avg_speed_kmh": float(state[8]) * 54
+                    },
+                    "west": {
+                        "vehicle_count": float(state[9]) * 10,
+                        "congestion_ratio": float(state[10]),
+                        "avg_speed_kmh": float(state[11]) * 54
+                    }
+                },
+                "summary": {
+                    "total_vehicles": int(sum([state[i] for i in [0, 3, 6, 9]]) * 10),
+                    "total_congestion": float(sum([state[i] for i in [1, 4, 7, 10]])),
+                    "avg_speed": float(sum([state[i] for i in [2, 5, 8, 11]]) / 4),
+                    "busiest_direction": ["North", "South", "East", "West"][max(range(4), key=lambda i: state[i*3])]
+                }
+            }
+            self._append_to_file('traffic_states', data)
+        except Exception as e:
+            print(f"Error sending traffic state: {e}")
+    
+    def send_phase_change(self, step, action, phase, duration):
+        """Send phase change to dashboard"""
+        try:
+            data = {
+                "timestamp": datetime.now().isoformat(),
+                "step": step,
+                "action": int(action),
+                "phase_state": phase,
+                "duration_seconds": int(duration),
+                "direction": ["North", "South", "East", "West"][action]
+            }
+            self._append_to_file('phase_changes', data)
+        except Exception as e:
+            print(f"Error sending phase change: {e}")
+    
+    def send_performance(self, step, avg_reward, congestion, memory_size, epsilon):
+        """Send performance data to dashboard"""
+        try:
+            data = {
+                "timestamp": datetime.now().isoformat(),
+                "step": step,
+                "metrics": {
+                    "average_reward_last_50": float(avg_reward),
+                    "current_congestion_level": float(congestion),
+                    "dqn_memory_size": int(memory_size),
+                    "exploration_rate": float(epsilon)
+                }
+            }
+            self._append_to_file('performance', data)
+        except Exception as e:
+            print(f"Error sending performance: {e}")
+    
+    def send_rewards(self, step, action, reward_breakdown, total_reward):
+        """Send reward breakdown to dashboard"""
+        try:
+            data = {
+                "timestamp": datetime.now().isoformat(),
+                "step": step,
+                "action": int(action),
+                "reward_breakdown": reward_breakdown,
+                "total_reward": float(total_reward),
+                "reward_analysis": {
+                    "dominant_factor": max(reward_breakdown.keys(), key=lambda k: abs(reward_breakdown[k])),
+                    "positive_factors": [k for k, v in reward_breakdown.items() if v > 0],
+                    "negative_factors": [k for k, v in reward_breakdown.items() if v < 0]
+                }
+            }
+            self._append_to_file('rewards', data)
+        except Exception as e:
+            print(f"Error sending rewards: {e}")
+    
+    def _append_to_file(self, file_key, data):
+        """Append data to file"""
+        try:
+            file_path = self.files[file_key]
+            
+            # Read existing data
+            with open(file_path, 'r') as f:
+                existing_data = json.load(f)
+            
+            # Append new data
+            existing_data.append(data)
+            
+            # Keep only last 200 entries
+            if len(existing_data) > 200:
+                existing_data = existing_data[-200:]
+            
+            # Write back
+            with open(file_path, 'w') as f:
+                json.dump(existing_data, f)
+                
+        except Exception as e:
+            print(f"Error writing to {file_key}: {e}")
+
+
 # === SUMO Setup ===
 sumo_cmd = ["sumo-gui", "-c", "C:\\PC\\Projects\\SIH2\\sumo_intersection\\cfg\\csv_vehicles.sumocfg"]
 traci.start(sumo_cmd)
@@ -274,6 +649,14 @@ def run_enhanced_dqn_simulation():
     
     enhanced_agent = EnhancedDQNAgent(state_size=12, action_size=4)  # Use position-based state
     
+    #Intializing dashboard sender
+    dashboard = DashboardDataSender()
+    esp32 = ESP32DataSender(esp32_ip="192.168.191.87")
+
+    esp32_connected = esp32.test_connection()
+    if not esp32_connected:
+        print("⚠️ ESP32 not connected. Continuing without Hardware integration.")
+
     try:
         step = 0
         current_phase_start = 0
@@ -297,6 +680,12 @@ def run_enhanced_dqn_simulation():
             
             # Get current state using position-based detection
             state = get_correct_traffic_state()
+
+            if step % 10 == 0:
+                dashboard.send_traffic_state(step, state)
+
+                if step % 20 == 0 and esp32_connected:
+                    esp32.send_traffic_metrics(step, state)
             
             # Check if current phase should end
             phase_elapsed = current_time - current_phase_start
@@ -312,10 +701,13 @@ def run_enhanced_dqn_simulation():
             if should_change_phase:
                 # Calculate reward for previous action
                 if prev_state is not None and current_action is not None:
-                    reward = calculate_smart_reward(prev_state, state, current_action)
+                    reward , reward_breakdown  = calculate_smart_reward_with_breakdown(prev_state, state, current_action)
+
                     enhanced_agent.remember_priority(prev_state, current_action, 
                                                    reward, state, False)
                     episode_rewards.append(reward)
+
+                    dashboard.send_rewards(step, current_action, reward_breakdown, reward)
                 
                 # Choose new action with traffic-aware logic
                 current_action, current_duration = choose_intelligent_action_and_duration(
@@ -330,10 +722,21 @@ def run_enhanced_dqn_simulation():
                     # Ensure minimum duration is respected
                     actual_duration = max(current_duration, MINIMUM_GREEN_TIME)
                     traci.trafficlight.setPhaseDuration(tls_id, int(actual_duration))
+
+
                     
-                    print(f"🚦 Step {step}: Phase {phase} for {actual_duration}s (Action {current_action})")
-                    print(f"   Traffic: N={state[0]:.2f}, S={state[3]:.2f}, E={state[6]:.2f}, W={state[9]:.2f}")
-                    print(f"   Congestion: N={state[1]:.2f}, S={state[4]:.2f}, E={state[7]:.2f}, W={state[10]:.2f}")
+                    # print(f"🚦 Step {step}: Phase {phase} for {actual_duration}s (Action {current_action})")
+                    # print(f"   Traffic: N={state[0]:.2f}, S={state[3]:.2f}, E={state[6]:.2f}, W={state[9]:.2f}")
+                    # print(f"   Congestion: N={state[1]:.2f}, S={state[4]:.2f}, E={state[7]:.2f}, W={state[10]:.2f}")
+                    dashboard.send_phase_change(step, current_action, phase, actual_duration)
+
+                    if esp32_connected:
+                        esp32.send_traffic_light_state(step, current_action, phase, actual_duration, traffic_state=state)
+
+                    total_congestion = sum([state[i] for i in [1, 4, 7, 10]])
+
+                    if total_congestion > 3.0 and esp32_connected:
+                        esp32.send_emergency_alert("HIGH CONGESTION", priority="HIGH")
                     
                     if len(episode_rewards) > 0:
                         print(f"   Recent reward: {episode_rewards[-1]:.2f}")
@@ -351,15 +754,19 @@ def run_enhanced_dqn_simulation():
             
             # Track performance every 100 steps
             if step % 100 == 0:
+
                 avg_reward = np.mean(episode_rewards[-50:]) if episode_rewards else 0
                 current_congestion = sum(state[1::4]) if len(state) > 4 else 0
                 congestion_levels.append(current_congestion)
+
                 
-                print(f"\n📊 Step {step} Performance Summary:")
-                print(f"   Average Reward (last 50): {avg_reward:.2f}")
-                print(f"   Current Congestion: {current_congestion:.2f}")
-                print(f"   Epsilon: {enhanced_agent.epsilon:.3f}")
-                print(f"   Memory Size: {len(enhanced_agent.memory)}")
+                # print(f"\n📊 Step {step} Performance Summary:")
+                # print(f"   Average Reward (last 50): {avg_reward:.2f}")
+                # print(f"   Current Congestion: {current_congestion:.2f}")
+                # print(f"   Epsilon: {enhanced_agent.epsilon:.3f}")
+                # print(f"   Memory Size: {len(enhanced_agent.memory)}")
+
+                dashboard.send_performance(step, avg_reward, current_congestion, len(enhanced_agent.memory), enhanced_agent.epsilon)
             
             time.sleep(0.05)
             
@@ -367,10 +774,33 @@ def run_enhanced_dqn_simulation():
         print(f"Enhanced simulation error: {e}")
     finally:
         traci.close()
+        # try:
+            
+        #     final_summary = {
+        #         "timestamp": datetime.now().isoformat(),
+        #         "simulation_completed": True,
+        #         "total_steps": step,
+        #         "final_metrics": {
+        #             "total_rewards": len(episode_rewards),
+        #             "avg_reward": float(np.mean(episode_rewards) if episode_rewards else 0),
+        #             "final_congestion": float(congestion_levels[-1] if congestion_levels else 0),
+        #             "model_saved": True
+        #         }
+        #     }
+
+        #     requests.post(f"{API_BASE_URL}/simulation/complete", json=final_summary, timeout=5)
+        #     print("✅ Final summary sent to API")
+        # except:
+        #     pass
+        if esp32_connected:
+            esp32.send_emergency_alert("SIMULATION ENDED", priority="LOW")
         
         try:
             torch.save(enhanced_agent.model.state_dict(), 'enhanced_traffic_dqn.pth')
             print("Model saved successfully!")
+
+
+
         except Exception as e:
             print(f"Error saving model: {e}")
 
@@ -655,6 +1085,48 @@ def calculate_smart_reward(prev_state, current_state, action):
     
     return total_reward
 
+def calculate_smart_reward_with_breakdown(prev_state, current_state, action):
+    """Calculate reward with detailed breakdown for dashboard"""
+    
+    # Extract direction metrics
+    prev_traffic = [prev_state[i] for i in [0, 3, 6, 9]]
+    curr_traffic = [current_state[i] for i in [0, 3, 6, 9]]
+    
+    prev_congestion = [prev_state[i] for i in [1, 4, 7, 10]]
+    curr_congestion = [current_state[i] for i in [1, 4, 7, 10]]
+    
+    curr_speeds = [current_state[i] for i in [2, 5, 8, 11]]
+    
+    # Calculate components
+    clearance_reward = (sum(prev_traffic) - sum(curr_traffic)) * 5.0
+    congestion_reward = (sum(prev_congestion) - sum(curr_congestion)) * 3.0
+    
+    chosen_direction_traffic = curr_traffic[action]
+    chosen_direction_congestion = curr_congestion[action]
+    
+    if chosen_direction_traffic > 0.1 or chosen_direction_congestion > 0.2:
+        efficiency_reward = 2.0
+    elif chosen_direction_traffic > 0.05:
+        efficiency_reward = 1.0
+    else:
+        efficiency_reward = -1.0
+    
+    speed_reward = np.mean(curr_speeds) * 2.0
+    congestion_penalty = -sum(curr_congestion) * 2.0
+    
+    total_reward = (clearance_reward + congestion_reward + efficiency_reward + 
+                   speed_reward + congestion_penalty)
+    
+    # Breakdown for dashboard
+    reward_breakdown = {
+        "clearance_reward": float(clearance_reward),
+        "congestion_reward": float(congestion_reward),
+        "efficiency_reward": float(efficiency_reward),
+        "speed_reward": float(speed_reward),
+        "congestion_penalty": float(congestion_penalty)
+    }
+    
+    return total_reward, reward_breakdown
 if __name__ == "__main__":
     # Debug edges first
     debug_real_edges()
